@@ -1,0 +1,19 @@
+{{- if and (eq .Values.srvDir.type "pvc") (not .Values.srvDir.pvc.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ tpl .Values.srvDir.name .}}
+  labels:
+    {{- include "filebrowser.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- range .Values.srvDir.pvc.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.srvDir.pvc.size | quote }}
+  {{- if .Values.srvDir.pvc.storageClassName }}
+  storageClassName: {{ .Values.srvDir.pvc.storageClassName }}
+  {{- end }}
+{{- end }}

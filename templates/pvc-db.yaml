@@ -1,0 +1,19 @@
+{{- if and .Values.database.pvc.enabled (not .Values.database.pvc.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ tpl .Values.database.name .}}
+  labels:
+    {{- include "filebrowser.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- range .Values.database.pvc.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.database.pvc.size | quote }}
+  {{- if .Values.database.pvc.storageClassName }}
+  storageClassName: {{ .Values.database.pvc.storageClassName }}
+  {{- end }}
+{{- end }}

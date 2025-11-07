@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ tpl .Values.config.name . }}
+  labels:
+    {{- include "filebrowser.labels" . | nindent 4 }}
+data:
+  {{ .Values.config.fileName }}: |
+    {{- tpl (.Values.config.data | toPrettyJson) . | nindent 4 }}

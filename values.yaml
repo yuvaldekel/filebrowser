@@ -1,0 +1,103 @@
+nameOverride: ""
+
+fullnameOverride: "filebrowser"
+
+server:
+  image:
+    repository: docker.io/filebrowser/filebrowser
+    pullPolicy: IfNotPresent
+    tag: "v2.45.0"
+
+  replicas: 1
+
+  imagePullSecrets: []
+
+  podSecurityContext: {}
+
+  podAnnotations: {}
+
+  securityContext: {}
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  livenessProbe: {}
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+
+  initContainers: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+
+  hosts:
+    - host: filebrowser.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+
+srvDir:
+  name: '{{ include "filebrowser.fullname" . }}-srvdir'
+  mountPath: srv
+  type: pvc
+  readOnly: false
+  pvc:
+    existingClaim: ""
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 2Gi
+  extraLabels: 
+    Protected: "true"
+
+database:
+  name: '{{ include "filebrowser.fullname" . }}-database'
+  mountPath: /database
+  pvc:
+    enabled: true
+    existingClaim: ""
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+  extraLabels: 
+    Protected: "true"
+
+
+config:
+  name: '{{ include "filebrowser.fullname" . }}-config'
+  fileName: settings.json
+  mountPath: /config
+  data:
+    port: 8080
+    baseURL: ""
+    address: ""
+    log: stdout
+    database: "{{ .Values.database.mountPath }}/database.db"
+    root: "{{ .Values.srvDir.mountPath }}"

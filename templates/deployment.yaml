@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "filebrowser.fullname" . }}
+  labels:
+    {{- include "filebrowser.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.server.replicas }}
+  selector:
+    matchLabels:
+      {{- include "filebrowser.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- if .Values.server.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.server.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "filebrowser.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "filebrowser.serviceAccountName" . }}
+      {{- if .Values.server.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.server.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- if .Values.server.initContainers }}
+      initContainers:
+        {{- toYaml .Values.server.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "filebrowser.fullname" . }}
+          {{- if .Values.server.securityContext }}
+          securityContext:
+            {{- toYaml .Values.server.securityContext | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
+          {{- if .Values.server.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: "{{ .Values.config.mountPath }}/{{ .Values.config.fileName }}"
+              name: {{ tpl .Values.config.name . }}
+              subPath: {{ .Values.config.fileName }}
+            - mountPath: {{ .Values.database.mountPath}}
+              name: {{ tpl .Values.database.name . }}
+            - mountPath: {{ .Values.srvDir.mountPath }}
+              name: {{ tpl .Values.srvDir.name . }}
+              readOnly: {{ .Values.srvDir.readOnly }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.data.port }}
+              protocol: TCP
+          {{- if .Values.server.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.server.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.server.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.server.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.server.resources }}
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+          {{- end }}
+      {{- if .Values.server.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.server.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.server.affinity }}
+      affinity:
+        {{- toYaml .Values.server.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.server.tolerations }}
+      tolerations:
+        {{- toYaml .Values.server.tolerations | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: {{ tpl .Values.config.name . }}
+          configMap:
+            name: {{ tpl .Values.config.name . }}
+        - name: {{ tpl .Values.database.name . }}
+          {{- if .Values.database.pvc.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.database.pvc.existingClaim | default (tpl .Values.database.name .) }}
+            {{- else }}
+            emptyDir: {}
+            {{- end }}
+        - name: {{ tpl .Values.srvDir.name . }}
+          {{- if eq .Values.srvDir.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.srvDir.pvc.existingClaim | default (tpl .Values.srvDir.name .) }}
+            readOnly: {{ .Values.srvDir.readOnly }}
+            {{- else if eq .Values.srvDir.type "hostPath" }}
+            hostPath:
+              path: {{ .Values.srvDir.hostPath.path }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
