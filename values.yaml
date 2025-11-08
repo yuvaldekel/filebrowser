@@ -59,7 +59,10 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
-  tls: []
+  tls:
+    - hosts: 
+        - filebrowser.local
+      secretName: 'filebrowser-tls'
 
 
 srvDir:
